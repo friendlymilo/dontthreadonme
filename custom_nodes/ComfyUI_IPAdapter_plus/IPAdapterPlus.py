@@ -2,10 +2,10 @@ import torch
 import os
 import math
 
-import comfy.utils
-import comfy.model_management
-from comfy.clip_vision import clip_preprocess, Output
-from comfy.ldm.modules.attention import optimized_attention
+import exlr.utils
+import exlr.model_management
+from exlr.clip_vision import clip_preprocess, Output
+from exlr.ldm.modules.attention import optimized_attention
 from nodes import MAX_RESOLUTION
 import folder_paths
 
@@ -259,15 +259,15 @@ def image_add_noise(image, noise):
 
 def zeroed_hidden_states(clip_vision, batch_size):
     image = torch.zeros([batch_size, 224, 224, 3])
-    comfy.model_management.load_model_gpu(clip_vision.patcher)
+    exlr.model_management.load_model_gpu(clip_vision.patcher)
     pixel_values = clip_preprocess(image.to(clip_vision.load_device)).float()
     outputs = clip_vision.model(pixel_values=pixel_values, intermediate_output=-2)
 
     # we only need the penultimate hidden states
-    return outputs[1].to(comfy.model_management.intermediate_device())
+    return outputs[1].to(exlr.model_management.intermediate_device())
 
 def encode_image_masked(clip_vision, image, mask=None):
-    comfy.model_management.load_model_gpu(clip_vision.patcher)
+    exlr.model_management.load_model_gpu(clip_vision.patcher)
     pixel_values = clip_preprocess(image.to(clip_vision.load_device)).float()
 
     if mask is not None:
@@ -276,9 +276,9 @@ def encode_image_masked(clip_vision, image, mask=None):
     out = clip_vision.model(pixel_values=pixel_values, intermediate_output=-2)
 
     outputs = Output()
-    outputs["last_hidden_state"] = out[0].to(comfy.model_management.intermediate_device())
-    outputs["image_embeds"] = out[2].to(comfy.model_management.intermediate_device())
-    outputs["penultimate_hidden_states"] = out[1].to(comfy.model_management.intermediate_device())
+    outputs["last_hidden_state"] = out[0].to(exlr.model_management.intermediate_device())
+    outputs["image_embeds"] = out[2].to(exlr.model_management.intermediate_device())
+    outputs["penultimate_hidden_states"] = out[1].to(exlr.model_management.intermediate_device())
     return outputs
 
 def min_(tensor_list):
@@ -590,7 +590,7 @@ class IPAdapterModelLoader:
     def load_ipadapter_model(self, ipadapter_file):
         ckpt_path = folder_paths.get_full_path("ipadapter", ipadapter_file)
 
-        model = comfy.utils.load_torch_file(ckpt_path, safe_load=True)
+        model = exlr.utils.load_torch_file(ckpt_path, safe_load=True)
 
         if ckpt_path.lower().endswith(".safetensors"):
             st_model = {"image_proj": {}, "ip_adapter": {}}
@@ -682,8 +682,8 @@ class IPAdapterApply:
                         tile_blur=0,
                         ):
         
-        self.dtype = torch.float16 if comfy.model_management.should_use_fp16() else torch.float32
-        self.device = comfy.model_management.get_torch_device()
+        self.dtype = torch.float16 if exlr.model_management.should_use_fp16() else torch.float32
+        self.device = exlr.model_management.get_torch_device()
         self.weight = weight
         self.is_full = "proj.3.weight" in ipadapter["image_proj"]
         self.is_portrait = "proj.2.weight" in ipadapter["image_proj"] and not "proj.3.weight" in ipadapter["image_proj"] and not "0.to_q_lora.down.weight" in ipadapter["ip_adapter"]
@@ -1031,17 +1031,17 @@ class IPAdapterEncoder:
         
         if image_2 is not None:
             if image_1.shape[1:] != image_2.shape[1:]:
-                image_2 = comfy.utils.common_upscale(image_2.movedim(-1,1), image.shape[2], image.shape[1], "bilinear", "center").movedim(1,-1)
+                image_2 = exlr.utils.common_upscale(image_2.movedim(-1,1), image.shape[2], image.shape[1], "bilinear", "center").movedim(1,-1)
             image = torch.cat((image, image_2), dim=0)
             weight += [weight_2]*image_2.shape[0]
         if image_3 is not None:
             if image.shape[1:] != image_3.shape[1:]:
-                image_3 = comfy.utils.common_upscale(image_3.movedim(-1,1), image.shape[2], image.shape[1], "bilinear", "center").movedim(1,-1)
+                image_3 = exlr.utils.common_upscale(image_3.movedim(-1,1), image.shape[2], image.shape[1], "bilinear", "center").movedim(1,-1)
             image = torch.cat((image, image_3), dim=0)
             weight += [weight_3]*image_3.shape[0]
         if image_4 is not None:
             if image.shape[1:] != image_4.shape[1:]:
-                image_4 = comfy.utils.common_upscale(image_4.movedim(-1,1), image.shape[2], image.shape[1], "bilinear", "center").movedim(1,-1)
+                image_4 = exlr.utils.common_upscale(image_4.movedim(-1,1), image.shape[2], image.shape[1], "bilinear", "center").movedim(1,-1)
             image = torch.cat((image, image_4), dim=0)
             weight += [weight_4]*image_4.shape[0]
         
