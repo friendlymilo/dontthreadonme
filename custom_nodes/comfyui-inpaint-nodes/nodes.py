@@ -9,8 +9,8 @@ from torch import Tensor
 from exlr.model_patcher import ModelPatcher
 from exlr.model_base import BaseModel
 from exlr.model_management import cast_to_device, get_torch_device
-from comfy_extras.chainner_models.types import PyTorchModel
-import comfy_extras.chainner_models.model_loading
+from exlr_extras.chainner_models.types import PyTorchModel
+import exlr_extras.chainner_models.model_loading
 import exlr.utils
 import exlr.lora
 import folder_paths
@@ -313,7 +313,7 @@ class LoadInpaintModel:
         if "synthesis.first_stage.conv_first.conv.resample_filter" in sd:  # MAT
             model = mat.load(sd)
         else:
-            model = comfy_extras.chainner_models.model_loading.load_state_dict(sd)
+            model = exlr_extras.chainner_models.model_loading.load_state_dict(sd)
         model = model.eval()
         return (model,)
 
